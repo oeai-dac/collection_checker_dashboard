@@ -29,9 +29,8 @@ Ein interaktives Streamlit-Dashboard zum Analysieren, Bereinigen und Verwalten v
   - `openpyxl`
   - `xlrd`
 
-Installieren:
+
 ```bash
 pip install -r requirements.txt
-Ausführen: 
-```bash
+
 streamlit run oai_checker_dashboard.py
