@@ -220,7 +220,7 @@ if path and os.path.exists(path):
 
     # ---- Tab 2: Ordnerstruktur ----
     with tabs[1]:
-        st.subheader("Ordnerbaum (nur Ordner, erste Ebene blau, kompakt)")
+        st.subheader("Ordnerstruktur")
         render_folder_tree_only_dirs(path)
 
     # ---- Tab 3: Dateiendungen ----
@@ -232,7 +232,7 @@ if path and os.path.exists(path):
 
     # ---- Tab 4: Sonderzeichen ----
     with tabs[3]:
-        st.subheader("Dateien mit Sonderzeichen (Vorschau)")
+        st.subheader("Dateien mit Sonderzeichen")
         st.write("Original → Bereinigt")
         if files_special:
             if st.button("Alle Dateien umbenennen"):
