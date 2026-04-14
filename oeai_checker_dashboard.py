@@ -166,7 +166,25 @@ def create_metadata_json(folder_path):
     with open(metadata_path, 'w', encoding='utf-8') as jf:
         json.dump(metadata, jf, indent=4, ensure_ascii=False)
     return metadata_path
+    
+def is_pdfa(file_path):
+    try:
+        from PyPDF2 import PdfReader
 
+        reader = PdfReader(file_path)
+
+        # PDF/A Hinweis über Metadata
+        meta = reader.metadata
+
+        if meta:
+            meta_str = str(meta).lower()
+            if "pdfaid" in meta_str or "pdf/a" in meta_str:
+                return True
+
+        return False
+    except:
+        return False
+        
 # ---- Ordner analysieren ----
 if path and os.path.exists(path):
     files = []
@@ -220,7 +238,7 @@ if path and os.path.exists(path):
 
     # ---- Tab 2: Ordnerstruktur ----
     with tabs[1]:
-        st.subheader("Ordnerstruktur")
+        st.subheader("Ordnerbaum (nur Ordner, erste Ebene blau, kompakt)")
         render_folder_tree_only_dirs(path)
 
     # ---- Tab 3: Dateiendungen ----
@@ -232,56 +250,97 @@ if path and os.path.exists(path):
 
     # ---- Tab 4: Sonderzeichen ----
     with tabs[3]:
-        st.subheader("Dateien mit Sonderzeichen")
-        st.write("Original → Bereinigt")
-        if files_special:
-            if st.button("Alle Dateien umbenennen"):
-                for old,new in files_special:
-                    safe_rename(old,new)
-                st.success("Alle Dateien wurden umbenannt!")
-            for _, row in df_special_files.iterrows():
-                col1,col2,col3 = st.columns([4,4,2])
-                with col1: st.text(row['original'])
-                with col2: st.text(row['cleaned'])
-                with col3:
-                    if st.button("Umbenennen", key=row['original']):
-                        safe_rename(row['original'], row['cleaned'])
-                        st.success(f"{row['original']} → {row['cleaned']}")
-        else:
-            st.info("Keine Dateien mit Sonderzeichen gefunden.")
+            st.subheader("Dateien mit Sonderzeichen")
+            st.metric("Anzahl Dateien mit Sonderzeichen", len(files_special))  # 👈 NEU
 
-        st.subheader("Ordner mit Sonderzeichen (Vorschau)")
-        if directories_special:
-            for _, row in df_special_dirs.iterrows():
-                col1,col2,col3 = st.columns([4,4,2])
-                with col1: st.text(row['original'])
-                with col2: st.text(row['cleaned'])
-                with col3:
-                    if st.button("Umbenennen", key=row['original']+"_dir"):
-                        safe_rename(row['original'], row['cleaned'])
-                        st.success(f"{row['original']} → {row['cleaned']}")
-        else:
-            st.info("Keine Ordner mit Sonderzeichen gefunden.")
+            st.write("Original → Bereinigt")
+            if files_special:
+                if st.button("Alle Dateien umbenennen"):
+                    for old,new in files_special:
+                        safe_rename(old,new)
+                    st.success("Alle Dateien wurden umbenannt!")
 
-    # ---- Tab 5: Umwandlungen ----
+                for _, row in df_special_files.iterrows():
+                    col1,col2,col3 = st.columns([4,4,2])
+                    with col1: st.text(row['original'])
+                    with col2: st.text(row['cleaned'])
+                    with col3:
+                        if st.button("Umbenennen", key=row['original']):
+                            safe_rename(row['original'], row['cleaned'])
+
+            else:
+                st.info("Keine Dateien mit Sonderzeichen gefunden.")
+
+            st.subheader("Ordner mit Sonderzeichen (Vorschau)")
+            st.metric("Anzahl Ordner mit Sonderzeichen", len(directories_special))  # 👈 NEU
+
+            if directories_special:
+                for _, row in df_special_dirs.iterrows():
+                    col1,col2,col3 = st.columns([4,4,2])
+                    with col1: st.text(row['original'])
+                    with col2: st.text(row['cleaned'])
+                    with col3:
+                        if st.button("Umbenennen", key=row['original']+"_dir"):
+                            safe_rename(row['original'], row['cleaned'])
+            else:
+                st.info("Keine Ordner mit Sonderzeichen gefunden.")
+     # ---- Tab 5: Umwandlungen ----
     with tabs[4]:
-        excel_files = [f for f in files if f.lower().endswith(('.xls','.xlsx'))]
-        st.subheader("Excel-Dateien (XLS/XLSX)")
-        if excel_files:
-            if st.button("Alle Excel-Dateien in CSV umwandeln"):
-                for f in excel_files:
-                    convert_excel_to_csv(f)
-                st.success("Alle Excel-Dateien wurden in CSV umgewandelt!")
-            for f in excel_files:
-                col1,col2 = st.columns([6,2])
-                with col1: st.text(f)
-                with col2:
-                    if st.button("Umwandeln", key=f):
-                        csv_file = convert_excel_to_csv(f)
-                        st.success(f"{f} → {csv_file}")
-        else:
-            st.info("Keine Excel-Dateien im ausgewählten Ordner gefunden.")
 
+        st.subheader("📊 Dokumentübersicht")
+
+        word_files = [f for f in files if f.lower().endswith(('.doc', '.docx'))]
+        pdf_files = [f for f in files if f.lower().endswith('.pdf')]
+        excel_files = [f for f in files if f.lower().endswith(('.xls', '.xlsx'))]
+
+        # ================= WORD =================
+        st.subheader("📝 Word-Dateien (DOC / DOCX)")
+        st.metric("Anzahl Word-Dateien", len(word_files))
+
+        if word_files:
+            for f in word_files:
+                st.text(f)
+        else:
+            st.info("Keine Word-Dateien gefunden.")
+
+        st.divider()
+
+        # ================= EXCEL =================
+        st.subheader("📊 Excel-Dateien (XLS / XLSX)")
+        st.metric("Anzahl Excel-Dateien", len(excel_files))
+
+        if excel_files:
+            for f in excel_files:
+                st.text(f)
+        else:
+            st.info("Keine Excel-Dateien gefunden.")
+
+        st.divider()
+
+        # ================= PDF =================
+        st.subheader("📄 PDF-Dateien")
+        st.metric("Anzahl PDF-Dateien", len(pdf_files))
+
+        pdfa_count = 0
+
+        if pdf_files:
+            for f in pdf_files:
+                is_pdfa_flag = is_pdfa(f)
+                if is_pdfa_flag:
+                    pdfa_count += 1
+
+                col1, col2 = st.columns([6, 2])
+                with col1:
+                    st.text(f)
+                with col2:
+                    if is_pdfa_flag:
+                        st.success("PDF/A")
+                    else:
+                        st.warning("kein PDF/A")
+
+            st.metric("PDF/A Dateien", pdfa_count)
+        else:
+            st.info("Keine PDF-Dateien gefunden.")
     # ---- Tab 6: Erweitert ----
     with tabs[5]:
         st.subheader("Leere Dateien und Ordner")
