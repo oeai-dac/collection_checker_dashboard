@@ -33,4 +33,4 @@ Ein interaktives Streamlit-Dashboard zum Analysieren, Bereinigen und Verwalten v
 ```bash
 pip install -r requirements.txt
 
-streamlit run oai_checker_dashboard.py
+streamlit run oeai_checker_dashboard.py
